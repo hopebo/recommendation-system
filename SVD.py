@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import numpy as np
+from data_manager import Data_Factory
+from numpy.random import random
+
+class SVD():
+    def __init__(self, X, k=20):
+        self.X = np.array(X)
+        self.k = k
+        self.ave = np.mean(self.X[:, 2])
+        print ("the input data size is ", self.X.shape)
+        self.bu = {}
+        self.bi = {}
+        self.pu = {}
+        self.qi = {}
+        self.movie_user = {}
+        self.user_movie = {}
+        for i in range(self.X.shape[0]):
+            uid, mid, rat = self.X[i][0], self.X[i][1], self.X[i][2]
+            self.movie_user.setdefault(mid, {})
+            self.user_movie.setdefault(uid, {})
+            self.movie_user[mid][uid] = rat
+            self.user_movie[uid][mid] = rat
+            self.bu.setdefault(uid, 0)
+            self.bi.setdefault(mid, 0)
+            self.pu.setdefault(uid, random((self.k, 1))/10*(np.sqrt(self.k)))
+            self.qi.setdefault(mid, random((self.k, 1))/10*(np.sqrt(self.k)))
+
+    def pred(self, uid, mid):
+        self.bu.setdefault(uid, 0)
+        self.bi.setdefault(mid, 0)
+        self.pu.setdefault(uid, np.zeros((self.k, 1)))
+        self.qi.setdefault(mid, np.zeros((self.k, 1)))
+        score = self.ave + self.bu[uid] + self.bi[mid] + np.sum(self.pu[uid] * self.qi[mid])
+        if score > 5:
+            return 5
+        if score < 1:
+            return 1
+        return score
+
+    def train(self, steps=20, gamma=0.04, Lambda=0.15):
+        for step in range(steps):
+            print ("the ", step, "-th step is running")
+            rmse_sum = 0.0
+            kk = np.random.permutation(self.X.shape[0])
+            for j in range(self.X.shape[0]):
+                i = kk[j]
+                uid = self.X[i][0]
+                mid = self.X[i][1]
+                rat = self.X[i][2]
+                eui = rat - self.pred(uid, mid)
+                rmse_sum += eui ** 2
+                self.bu[uid] = self.bu[uid] + gamma * (eui - Lambda * self.bu[uid])
+                self.bi[mid] = self.bi[mid] + gamma * (eui - Lambda * self.bi[mid])
+                temp = self.pu[uid]
+                self.pu[uid] = self.pu[uid] + gamma * (eui * self.qi[mid] - Lambda * self.pu[uid])
+                self.qi[mid] = self.qi[mid] + gamma * (eui * temp - Lambda * self.qi[mid])
+            gamma = gamma * 0.93
+            print ("the rmse of this step on train data is ", np.sqrt(rmse_sum / self.X.shape[0]))
+
+    def test(self, test_X):
+        output = [] 
+        sums = 0
+        test_X = np.array(test_X)
+        for i in range(test_X.shape[0]):
+            pre = self.pred(test_X[i][0], test_X[i][1])
+            output.append(pre)
+            sums += (pre - test_X[i][2]) ** 2
+        rmse = np.sqrt(sums / test_X.shape[0])
+        print ("the rmse on test data is ", rmse)
+        return output
+
+if __name__ == '__main__':
+    a = Data_Factory()
+    """
+    R = a.read_rating('./data/ml-1m/ratings.dat')
+    train, valid, test = a.generate_train_valid_test_file(R, 0.002)
+    a.save(train, './data/ml-1m/0.002/train.dat')
+    a.save(test, './data/ml-1m/0.002/test.dat')
+    """
+    train = a.load('./data/ml-1m/0.002/train.dat')
+    test = a.load('./data/ml-1m/0.002/test.dat')
+    b = SVD(train)
+    b.train()
+    output = b.test(test)
+    pass
