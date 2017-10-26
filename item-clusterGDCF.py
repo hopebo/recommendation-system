@@ -6,30 +6,17 @@ import numpy as np
 from data_manager import Data_Factory
 from sklearn.cluster import KMeans
 import pandas as pd
+import pickle
+import time
+
+TIMEFORMAT = "%Y-%m-%d %H:%M:%S"
 
 class Item_Based_CF():
-    def __init__(self, data):
-        data = np.array(data)
-        self.user_movie = {}
-        self.movie_user = {}
-        self.ave = np.mean(data[:, 2])
-        for i in range(len(data)):
-            uid, mid, rat = data[i][0], data[i][1], data[i][2]
-            self.user_movie.setdefault(uid, {})
-            self.movie_user.setdefault(mid, {})
-            self.user_movie[uid][mid] = rat
-            self.movie_user[mid][uid] = rat
-        self.similarity = {}
+    def __init__(self):
         pass
 
     def sim_cal(self, m1, m2):
-        if m1 > m2:
-            return self.sim_cal(m2, m1)
-        self.similarity.setdefault(m1, {})
-        sim = self.similarity.get(m1, {}).get(m2)
-        if sim:
-            return sim
-
+        sim = 0.0
         m1_user = self.movie_user.get(m1, {})
         m2_user = self.movie_user.get(m2, {})
         common_user = []
@@ -38,8 +25,7 @@ class Item_Based_CF():
                 common_user.append(uid)
         n = len(common_user)
         if n == 0:
-            self.similarity[m1][m2] = 0
-            return self.similarity[m1][m2]
+            return sim
 
         m1_rat = np.array([self.movie_user[m1][uid] for uid in common_user])
         m2_rat = np.array([self.movie_user[m2][uid] for uid in common_user])
@@ -51,12 +37,11 @@ class Item_Based_CF():
         denominator = np.sqrt((sum_m1_square - sum_m1 ** 2 / n) * (sum_m2_square - sum_m2 ** 2 / n))
 
         if denominator == 0:
-            self.similarity[m1][m2] = 0
-            return self.similarity[m1][m2]
+            return sim
 
         corr = (sum_inner - sum_m1 * sum_m2 / n) / denominator
-        self.similarity[m1][m2] = corr * n / (n + 100)
-        return self.similarity[m1][m2]
+        sim = corr * n / (n + 100)
+        return sim
 
     def pred(self, user, movie, gama_list):
         item_list = self.user_movie.get(user, {})
@@ -101,7 +86,6 @@ class Item_Based_CF():
         return precise
 
     def item_cluster(self, X, cluster_num):
-        self.df_genome = X
         self.genome_shape = self.df_genome.shape
         kmeans = KMeans(n_clusters=cluster_num).fit(self.df_genome)
         self.labels = pd.Series(kmeans.labels_, index=self.df_genome.index)
@@ -115,17 +99,14 @@ class Item_Based_CF():
         return
 
     def sim_cal_cluster(self, m1, m2):
-        if m1 > m2:
-            return self.sim_cal_cluster(m2, m1)
-        self.sim_cluster = {}
-        if m1 in self.sim_cluster and m2 in self.sim_cluster[m1]:
-            return self.sim_cluster[m1][m2]
         sim = 0.0
         diff = self.df_genome.loc[m1] - self.df_genome.loc[m2]
         sim = np.sqrt(np.sum(diff.values ** 2))
-        self.sim_cluster.setdefault(m1, {})
-        self.sim_cluster[m1][m2] = sim
         return self.sim_cluster[m1][m2]
+
+    def load_sim(self):
+        self.sim_cf = pickle.load(open('./data/ml-1m/sim_cf.dat', 'rb'))
+        self.sim_cluster = pickle.load(open('./data/ml-1m/sim_cluster.dat', 'rb'))
 
 
 
@@ -140,12 +121,6 @@ if __name__ == '__main__':
     """
     train = a.load('./data/ml-1m/0.002/train.dat')
     test = a.load('./data/ml-1m/0.002/test.dat')
-    b = Item_Based_CF(train)
-    res = {}
-    gama_list = [0.5]
-    for n_cluster in [30]:
-        b.item_cluster(df_train, n_cluster)
-        print ('n_cluster: %d' % n_cluster)
-        precise = b.test(test, gama_list)
-        res[n_cluster] = precise
+    b = Item_Based_CF()
+    b.load_sim()
     pass

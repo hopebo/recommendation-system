@@ -74,6 +74,20 @@ class Data_Factory():
         df_train = df_train.drop('ori_mid', axis=1)
         return df_train
 
+    def generate_train_valid_test_file_with_remove(self, data, ratio, df_train):
+        R = []
+        for i in range(len(data)):
+            if data[i][1] in df_train.index:
+                R.append(data[i])
+        n = np.array(R).shape[0]
+        valid_n = test_n = int(n * ratio / 2)
+        random.shuffle(R)
+        valid_ratings = R[0 : valid_n]
+        test_ratings = R[valid_n : valid_n + test_n]
+        train_ratings = R[valid_n + test_n : ]
+        return train_ratings, valid_ratings, test_ratings
+
+
 if __name__ == '__main__':
     a = Data_Factory()
     R = a.read_rating('./data/ml-1m/ratings.dat')

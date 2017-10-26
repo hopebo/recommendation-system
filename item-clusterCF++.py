@@ -13,10 +13,14 @@ class Item_Based_CF():
         self.user_movie = {}
         self.movie_user = {}
         self.ave = np.mean(data[:, 2])
+        self.bu = {}
+        self.bi = {}
         for i in range(len(data)):
             uid, mid, rat = data[i][0], data[i][1], data[i][2]
             self.user_movie.setdefault(uid, {})
             self.movie_user.setdefault(mid, {})
+            self.bu.setdefault(uid, 0)
+            self.bi.setdefault(mid, 0)
             self.user_movie[uid][mid] = rat
             self.movie_user[mid][uid] = rat
         self.similarity = {}
@@ -58,25 +62,31 @@ class Item_Based_CF():
         self.similarity[m1][m2] = corr * n / (n + 100)
         return self.similarity[m1][m2]
 
-    def pred(self, user, movie, gama_list):
+    def pred(self, user, movie, score, k=0.5):
         item_list = self.user_movie.get(user, {})
         sim_acc = 0.0
         rat_acc = 0.0
         sim_acc_cluster = 0.0
         rat_acc_cluster = 0.0
+        sim_cluster = []
+        sim_cf = []
         for item in item_list:
             if movie in self.labels.index and item in self.clusters[self.labels[movie]]:
                 sim = self.sim_cal_cluster(item, movie)
-                rat_acc_cluster += sim * self.user_movie[user][item]
-                sim_acc_cluster += sim
+                sim_cluster.append([sim, self.user_movie[user][item]])
             else:
                 sim = self.sim_cal(item, movie)
                 if sim <= 0:
                     continue
-                rat_acc += sim * self.user_movie[user][item]
-                sim_acc += sim
-        pred_cf = 0.0
-        pred_cluster = 0.0
+                sim_cf.append([sim, self.user_movie[user][item]])
+        sim_cluster = sorted(sim_cluster, key=lambda item : item[0], reverse=True)
+        sim_cf = sorted(sim_cf, key=lambda item : item[0], reverse=True)
+        for i in range(int(len(sim_cluster) * k)):
+            sim_acc_cluster += sim_cluster[i][0]
+            rat_acc_cluster += sim_cluster[i][0] * sim_cluster[i][1]
+        for i in range(int(len(sim_cf) * k)):
+            sim_acc += sim_cf[i][0]
+            rat_acc += sim_cf[i][0] * sim_cf[i][1]
         if sim_acc == 0:
             pred_cf = self.ave
         else:
@@ -85,18 +95,20 @@ class Item_Based_CF():
             pred_cluster = self.ave
         else:
             pred_cluster = rat_acc_cluster / sim_acc_cluster
-        return [gama * pred_cluster + (1 - gama) * pred_cf for gama in gama_list]
+        print (len(sim_cf), len(sim_cluster))
+        print (pred_cf, pred_cluster, score)
+        return 0.5 * pred_cluster + (1 - 0.5) * pred_cf
 
-    def test(self, test_rat, gama_list):
+    def test(self, test_rat):
         test_rat = np.array(test_rat)
         n = test_rat.shape[0]
-        err_square = [0.0 for x in range(len(gama_list))]
+        err_square = 0.0
         for i in range(n):
-            pred_rat = self.pred(test_rat[i][0], test_rat[i][1], gama_list)
-            err_square = [err_square[x] + (pred_rat[x] - test_rat[i][2]) ** 2 for x in range(len(gama_list))]
+            pred_rat = self.pred(test_rat[i][0], test_rat[i][1], test_rat[i][2])
+            err_square = err_square + (pred_rat - test_rat[i][2]) ** 2
             if i % 100 == 0:
                 print ("processing items quantity: %d" % i)
-        precise = [np.sqrt(err_square[x] / n) for x in range(len(gama_list))]
+        precise = np.sqrt(err_square / n)
         print ("the rmse on test data is: ", precise)
         return precise
 
@@ -127,6 +139,22 @@ class Item_Based_CF():
         self.sim_cluster[m1][m2] = sim
         return self.sim_cluster[m1][m2]
 
+    def observe(self, test):
+        test_rat = np.array(test)
+        n = test_rat.shape[0]
+        for i in range(n):
+            user = test_rat[i][0]
+            movie = test_rat[i][1]
+            rat = test_rat[i][2]
+            diffs = []
+            for mid in self.user_movie[user]:
+                diffs.append([abs(self.user_movie[user][mid]-rat), mid, self.labels[mid] == self.labels[movie]])
+            diffs = sorted(diffs, key=lambda item:item[0])
+            for i in range(len(diffs)):
+                print (diffs[i])
+            if i % 100 == 0:
+                print("processing items quantity: %d" % i)
+        return
 
 
 if __name__ == '__main__':
@@ -134,7 +162,7 @@ if __name__ == '__main__':
     df_train = a.generate_genome()
     """
     R = a.read_rating('./data/ml-1m/ratings.dat')
-    train, valid, test = a.generate_train_valid_test_file(R, 0.002)
+    train, valid, test = a.generate_train_valid_test_file_with_remove(R, 0.002, df_train)
     a.save(train, './data/ml-1m/0.002/train.dat')
     a.save(test, './data/ml-1m/0.002/test.dat')
     """
@@ -142,10 +170,8 @@ if __name__ == '__main__':
     test = a.load('./data/ml-1m/0.002/test.dat')
     b = Item_Based_CF(train)
     res = {}
-    gama_list = [0.5]
-    for n_cluster in [30]:
+    for n_cluster in [5]:
         b.item_cluster(df_train, n_cluster)
         print ('n_cluster: %d' % n_cluster)
-        precise = b.test(test, gama_list)
-        res[n_cluster] = precise
+        b.test(test)
     pass
