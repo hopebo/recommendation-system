@@ -29,7 +29,7 @@ Previously run *multiProcess.py* to calculate correlation coefficients and save 
 
 ### Precision and Recall comparison between ICCF and SVD
 
-![Precision and Recall](https://github.com/hopebo/Recommendation-System/blob/master/images/Recall%26Precision.png){:height="70%" width="70%"}
+<img src="https://github.com/hopebo/Recommendation-System/blob/master/images/Recall%26Precision.png" width="150" height="200" alt="Precision and Recall"/>
 
 ### F-score comparsion between ICCF and SVD
 
