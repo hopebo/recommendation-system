@@ -1,17 +1,37 @@
-# Recommendation-System
+#Recommendation-System
 
-## 包含的文件
+##Overview
 
-*CF.py*：基于物品的协同过滤模型的实现
+*CF.py*：Item-based collaborative filtering algorithm.
 
-*ICCF.py*：在协同过滤模型的基础上引入标签数据聚类的算法，通过随机梯度下降优化两者的参数比例
+*ICCF.py*：Introduce item clustering into collaborative filtering algorithm.
 
-*SVD.py*：矩阵分解算法
+*SVD.py*：Singular Value Decomposition algorithm.
 
-*data_manager.py*：与数据相关的处理类
+*data_manager.py*：Data process related class.
 
-*multiProcess.py*：使用多进程离线计算*item-item*之间由*Ratings*计算皮尔逊相关系数的相似度和由*Tag Genomes*计算欧式距离得到的相似度
+*multiProcess.py*: Concurrently calculate Pearson Correlation Coefficient by *Ratings* and Euclidean Distance by *Tag Genomes*.
 
-## 用法说明
+##Utilizing the Project
 
-预先执行*multiProcess.py*文件计算出相似度并存储到本地，然后可以采用*CF*、*ICCF*、*SVD*等算法构造推荐模型。
+Previously run *multiProcess.py* to calculate correlation coefficients and save them locally. Then use *CF.py*, *ICCF.py* or *SVD.py* to train different recommendation models.
+
+## Benchmark
+
+1. RMSE comparison of different algorithms
+
+|    Method     |  RMSE  |
+| :-----------: | :----: |
+|   MovieAvg    | 1.1162 |
+| Item-based CF | 0.9770 |
+|      SVD      | 0.9256 |
+|     ICCF      | 0.9113 |
+
+2. Precision and Recall comparison between ICCF and SVD
+
+   ![Precision and Recall](https://github.com/hopebo/Recommendation-System/blob/master/images/Recall%26Precision.png)
+
+3. F-score comparsion between ICCF and SVD
+
+   ![F-score](https://github.com/hopebo/Recommendation-System/blob/master/images/F-score.png)
+
