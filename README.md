@@ -1,6 +1,6 @@
-#Recommendation-System
+# Recommendation-System
 
-##Overview
+## Overview
 
 *CF.py*：Item-based collaborative filtering algorithm.
 
@@ -12,13 +12,13 @@
 
 *multiProcess.py*: Concurrently calculate Pearson Correlation Coefficient by *Ratings* and Euclidean Distance by *Tag Genomes*.
 
-##Utilizing the Project
+## Utilizing the Project
 
 Previously run *multiProcess.py* to calculate correlation coefficients and save them locally. Then use *CF.py*, *ICCF.py* or *SVD.py* to train different recommendation models.
 
 ## Benchmark
 
-1. RMSE comparison of different algorithms
+### RMSE comparison of different algorithms
 
 |    Method     |  RMSE  |
 | :-----------: | :----: |
@@ -27,11 +27,10 @@ Previously run *multiProcess.py* to calculate correlation coefficients and save 
 |      SVD      | 0.9256 |
 |     ICCF      | 0.9113 |
 
-2. Precision and Recall comparison between ICCF and SVD
+### Precision and Recall comparison between ICCF and SVD
 
-   ![Precision and Recall](https://github.com/hopebo/Recommendation-System/blob/master/images/Recall%26Precision.png)
+![Precision and Recall](https://github.com/hopebo/Recommendation-System/blob/master/images/Recall%26Precision.png){:height="70%" width="70%"}
 
-3. F-score comparsion between ICCF and SVD
+### F-score comparsion between ICCF and SVD
 
-   ![F-score](https://github.com/hopebo/Recommendation-System/blob/master/images/F-score.png)
-
+![F-score](https://github.com/hopebo/Recommendation-System/blob/master/images/F-score.png){:height="70%" width="70%"}
